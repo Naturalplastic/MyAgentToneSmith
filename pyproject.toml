@@ -1,0 +1,68 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mytone"
+version = "0.1.0"
+description = "评价器在环的 AI 摄影后期 Agent"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [
+    { name = "王子晨 (Naturalplastic / ddtz)" },
+]
+keywords = ["agent", "image-processing", "color-grading", "evaluator-in-the-loop"]
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# torch 与 torchvision 通过下方 [tool.uv.sources] 的 pytorch 索引解析，
+# 因此不要用 pypi 的 CPU 版覆盖它们。
+dependencies = [
+    "torch",
+    "torchvision",
+    "pillow",
+    "numpy",
+    "opencv-python",
+    "pyiqa",
+    "python-dotenv",
+    "requests",
+]
+
+[project.urls]
+Repository = "https://github.com/Naturalplastic/MyAgentToneSmith"
+
+# 安装后可直接使用 mytone / mytone-batch / mytone-calibrate 命令，
+# 与 python -m mytone / mytone.batch / mytone.calibrate 等价。
+[project.scripts]
+mytone = "mytone.cli:main"
+mytone-batch = "mytone.batch:main"
+mytone-calibrate = "mytone.calibrate:main"
+
+# ---------------------------------------------------------------- uv 配置
+# 让 torch 从 PyTorch 官方索引解析，避免装到 CPU 版。
+# explicit = true 表示该索引只用于显式指向它的包，不会污染其余依赖的解析。
+[tool.uv.sources]
+torch = { index = "pytorch" }
+torchvision = { index = "pytorch" }
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+# 使用 CPU 或不带 NVIDIA GPU 时，把上面的 url 换成：
+#   https://download.pytorch.org/whl/cpu
+
+# ---------------------------------------------------------------- 构建
+[tool.hatch.build.targets.wheel]
+packages = ["mytone"]
+
+# ---------------------------------------------------------------- 测试
+# 三份验证脚本不依赖 pytest，直接用 python 运行：
+#   python tests/check_core.py
+#   python tests/check_loop.py
+#   python tests/check_batch.py
