@@ -70,7 +70,7 @@
 | [`uv`](https://docs.astral.sh/uv/) | 包管理器 | 未安装时执行 `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | DeepSeek API Key | 必需 | 在 <https://platform.deepseek.com> 申请 |
 | 磁盘空间 | 约 8 GB | 虚拟环境约 6.2 GB，模型权重约 0.4 GB |
-| NVIDIA GPU | 可选 | 有则明显加快；纯 CPU 可正常运行 |
+| NVIDIA GPU | 可选 | 纯 CPU 可正常运行。本项目的耗时由 LLM 往返延迟主导，GPU 只加速按需测量的审美指标，对总时长的改善有限（实测见 `DESIGN.md` 15.11） |
 
 ### 安装
 
@@ -346,6 +346,7 @@ AESTHETIC_METRIC = "nima"    # 可选：nima-vgg16-ava、musiq-ava、topiq_iaa�
 | 反复"未达标" | 检查 `report.md` 第三部分中 `clip_hi` 是否持续接近上限。若是，说明任务需要更多过曝，考虑调大 `CLIP_HI_DELTA` |
 | 单张任务失败 | 不影响整批。失败原因见 `index.md` 的失败详情，含完整 traceback。此时退出码为 1 |
 | `--confirm` 未等待确认 | 当前非交互式终端。此为该参数的设计行为 |
+| 运行设备显示 `cpu`，但机器确有 NVIDIA 显卡 | 批处理启动时会打印实际设备。WSL 下用 `/usr/lib/wsl/lib/nvidia-smi` 验证；若报 `GPU access blocked by the operating system`，说明 WSL 宿主未把 GPU 交出来，需在 Windows 侧更新 NVIDIA 驱动后执行 `wsl --update` 与 `wsl --shutdown`。注意不要在 WSL 内安装 Linux 版 NVIDIA 驱动 |
 
 ---
 
