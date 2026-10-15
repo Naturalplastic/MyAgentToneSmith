@@ -154,13 +154,30 @@ source env.sh --venv
 ### 验证安装（不需要 API Key）
 
 ```bash
-.venv/bin/python tests/check_core.py
-.venv/bin/python tests/check_loop.py
-.venv/bin/python tests/check_batch.py
+.venv/bin/python tests/check_core.py     # 86 项，完全离线
+.venv/bin/python tests/check_loop.py     # 36 项，需模型权重
+.venv/bin/python tests/check_batch.py    # 38 项，需模型权重
 ```
 
-三份测试共 160 项，全部在本地运行，不需要联网，也不需要 API Key。
-可用于确认依赖安装正确、核心逻辑正常。
+三份测试共 160 项，均不需要 API Key，用于确认依赖安装正确、核心逻辑正常。
+
+`check_core.py` 不接触模型，断网也能跑；`check_loop.py` 与 `check_batch.py`
+需要真实的审美评分来取基线，因此首次运行会下载模型权重，之后走本地缓存。
+若只想知道依赖是否装对，先跑 `check_core.py` 即可。
+
+### 首次运行会下载模型权重
+
+审美评分使用 NIMA，其权重来自 HuggingFace，共约 400 MB：
+
+| 内容 | 大小 | 来源 |
+|---|---|---|
+| NIMA 权重 `NIMA_InceptionV2_ava-b0c77c00.pth` | 208 MB | `chaofengc/IQA-PyTorch-Weights` |
+| Inception-ResNet-v2 主干（由 `timm` 拉取） | 约 200 MB | `timm/inception_resnet_v2.tf_in1k` |
+
+首次调用审美评分时会一并下载，实测在正常网络下约一到两分钟；
+之后从本地缓存读取，不再联网。缓存位置由 `env.sh` 设为项目内的 `.torch-cache/`。
+
+若下载卡住，参考「网络」一节的代理与 `HF_ENDPOINT` 设置。
 
 ### 批处理
 

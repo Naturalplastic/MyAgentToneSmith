@@ -197,7 +197,18 @@ AES_NOISE_BAND = D_SOFT
 AES_LATENCY = "约 0.1 秒"  # 实测 CPU 0.10s，见设计文档 2.6
 
 # ---------------------------------------------------------------- LLM
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
+_RAW_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "").strip()
+
+#: .env.example 中的占位值。用户若忘记替换，会得到一个看起来非空、实际无效的密钥，
+#: 直到调用 API 才返回 401，报错位置与真实原因相距很远。
+#: 这里显式识别占位值并当作未设置处理，使程序在启动阶段就给出明确指引。
+#: 注意不要把形如真实密钥（sk- 后接长串字符）的值写进这里，否则会被密钥扫描误报。
+_API_KEY_PLACEHOLDERS = {
+    "sk-REPLACE_ME",
+    "sk-xxxxxxxx",
+}
+
+DEEPSEEK_API_KEY = "" if _RAW_API_KEY in _API_KEY_PLACEHOLDERS else _RAW_API_KEY
 DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-chat")
 LLM_TIMEOUT = 120  # 秒

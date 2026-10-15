@@ -87,8 +87,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if not config.DEEPSEEK_API_KEY:
         print(
-            "[错误] 未设置 DEEPSEEK_API_KEY。\n"
-            "       请先执行： export DEEPSEEK_API_KEY=sk-xxxxxxxx",
+            "[错误] 未设置 DEEPSEEK_API_KEY。请二选一：\n"
+            "       1) 在项目根目录执行  cp .env.example .env  ，然后把密钥填进去\n"
+            "       2) 临时指定  export DEEPSEEK_API_KEY=sk-xxxxxxxx",
             file=sys.stderr,
         )
         return 1
