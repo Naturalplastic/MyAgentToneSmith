@@ -263,8 +263,15 @@ def apply_target_revision(state: TaskState, new_target: dict, reason: str) -> st
 
 
 def _recent_improvements(state: TaskState, n: int) -> list[float] | None:
-    """最近 n 轮的改善量（error(上一轮) - error(本轮)）。不足则返回 None。"""
-    rounds = state.rounds
+    """最近 n 轮的改善量（error(上一轮) - error(本轮)）。不足则返回 None。
+
+    只把护栏合法的轮次放进链条。触发护栏的轮次会被回滚，它的 error 是在一个
+    并未真正停留过的参数位置上测得的，与合法轮次的 error 不可比。若把它们一并
+    入链，会凭空产生一次"改善"（非法轮的误差恰好比上一轮小），紧随其后再产生
+    一次"退步"（合法轮从回滚后的位置重新出发，误差比非法轮大）。两次假信号就
+    顶满 PLATEAU_ROUNDS，让预算还剩大半的任务提前退出。
+    """
+    rounds = [r for r in state.rounds if r.guard_ok]
     if len(rounds) < n + 1:
         return None
     out = []
@@ -319,7 +326,7 @@ def check_boundaries(state: TaskState) -> str:
         state.exit_reason = "stalled_after_goal" if state.is_goal_met() else "plateau"
         return "exit"
 
-    # 本轮触发护栏但还没到"连续 2 轮" → 回滚
+    # 本轮触发护栏但还没到连续上限 → 回滚
     if not last.guard_ok:
         return "rollback"
 

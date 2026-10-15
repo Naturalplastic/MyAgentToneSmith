@@ -210,6 +210,9 @@ def run_batch(
     print(f"输入目录：{in_dir}")
     print(f"输出目录：{out_dir}")
     print(f"任务数  ：{len(tasks)}")
+    # 显示实际使用的设备：批处理耗时以小时计，用户需要确认是否用上了 GPU
+    print(f"运行设备：{config.DEVICE}"
+          + ("（未检测到可用 CUDA 设备，使用 CPU）" if config.DEVICE == "cpu" else ""))
     print("=" * 78)
     for i, t in enumerate(tasks, 1):
         inst = t["instruction"] or "（空，将报错）"
@@ -342,7 +345,21 @@ def run_batch(
 # ================================================================ CLI
 
 
+def _line_buffer_stdout() -> None:
+    """让 stdout 行缓冲。
+
+    批处理运行时间以小时计，用户通常会把输出重定向到日志文件。
+    此时 Python 默认使用块缓冲，进度要等很久才落盘，无法观察运行状态。
+    改为行缓冲后，每打印一行就写出去。
+    """
+    try:
+        sys.stdout.reconfigure(line_buffering=True)  # type: ignore[union-attr]
+    except (AttributeError, ValueError):  # 非标准 stdout（如被替换过的流）
+        pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    _line_buffer_stdout()
     p = argparse.ArgumentParser(
         prog="mytone.batch",
         description="批量跑：把一整个文件夹的照片逐张跑一遍完整 agent",

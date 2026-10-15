@@ -339,7 +339,7 @@ AESTHETIC_METRIC = "nima"    # 可选：nima-vgg16-ava、musiq-ava、topiq_iaa�
 | 现象 | 原因与处理 |
 |---|---|
 | `未设置 DEEPSEEK_API_KEY` | 未创建 `.env` 且未设置环境变量。执行 `cp .env.example .env` 并填写 |
-| `huggingface.co 不可达` | 未设置代理或代理不通。若模型权重已下载，不影响使用。可设置 `HF_ENDPOINT=https://hf-mirror.com` |
+| `huggingface.co 不可达` | 先确认已 `source env.sh`。权重缓存在项目内 `.hf-cache` 与 `.torch-cache`，而这两个位置只由 `env.sh` 通过 `HF_HOME`/`TORCH_HOME` 指定；不设置时程序会去默认目录找，找不到才联网，于是表现为"权重明明下载过却仍要联网"。确认已 source 后仍不通，再设代理或 `HF_ENDPOINT=https://hf-mirror.com` |
 | `PermissionError` 指向 `~/.cache/torch` | 缓存目录不可写。设置 `export TORCH_HOME=$PWD/.torch-cache` |
 | `ImportError: Using SOCKS proxy` | 代理地址写成了 `socks5://`。改为 `http://` |
 | 同一张照片多次运行结果不同 | LLM 采样具有随机性（温度 0.2），且路径与护栏强相关。排障时设置 `MYTONE_TEMPERATURE=0` |
@@ -352,13 +352,16 @@ AESTHETIC_METRIC = "nima"    # 可选：nima-vgg16-ava、musiq-ava、topiq_iaa�
 ## 验证
 
 ```bash
-.venv/bin/python tests/check_core.py     # 86 项：耦合方向、裁剪、校验、护栏、边界、目标修正
+source env.sh                            # 必须：指定项目内的权重缓存，否则 check_loop/check_batch 会去联网找模型
+.venv/bin/python tests/check_core.py     # 88 项：耦合方向、裁剪、校验、护栏、边界、目标修正、回滚轮不计入平台判定
 .venv/bin/python tests/check_loop.py     # 36 项：主循环端到端
 .venv/bin/python tests/check_batch.py    # 38 项：批处理扫描、配对、错误隔离、汇总表、退出码
 ```
 
-`check_loop.py` 与 `check_batch.py` 仅替换网络层。JSON 解析、输出校验、重试、
-上下文组装、`pending_warning` 的清理时机、产物清理均使用真实代码。
+`check_core.py` 完全离线，不需要权重、不需要 API Key。`check_loop.py` 与
+`check_batch.py` 仅替换网络层，需要从本地缓存加载 NIMA 权重（约 400 MB，
+缓存缺失时才会下载）。三者的 JSON 解析、输出校验、重试、上下文组装、
+`pending_warning` 的清理时机、产物清理均使用真实代码。
 
 覆盖场景包括：正常交付（含质疑与确认流程）、工具预算耗尽、护栏回滚、
 `revise_target` 修正目标后重算历史误差、批处理单任务失败不中断整批。

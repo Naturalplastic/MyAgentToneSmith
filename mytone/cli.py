@@ -61,7 +61,21 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _line_buffer_stdout() -> None:
+    """让 stdout 行缓冲。
+
+    批处理运行时间以小时计，用户通常会把输出重定向到日志文件。
+    此时 Python 默认使用块缓冲，进度要等很久才落盘，无法观察运行状态。
+    改为行缓冲后，每打印一行就写出去。
+    """
+    try:
+        sys.stdout.reconfigure(line_buffering=True)  # type: ignore[union-attr]
+    except (AttributeError, ValueError):  # 非标准 stdout（如被替换过的流）
+        pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    _line_buffer_stdout()
     parser = build_parser()
     args = parser.parse_args(argv)
 

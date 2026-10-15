@@ -213,6 +213,10 @@ def scenario_d(work: Path) -> None:
         {"adjust": {"brightness": 0.2, "contrast": 0.2}, "reason": "继续提亮并拉对比"},
         {"adjust": {"brightness": 0.2, "contrast": 0.2}, "reason": "继续"},
         {"finish": "best_effort", "deliver_round": 0, "reason": "交付原图"},
+        # 平台判定不再把回滚轮计入改善链条后，主循环会走到这里而不是提前退出；
+        # 首次声明"交付第 0 轮"会因 best_by_error 不是第 0 轮而被质疑一次（见 9.4），
+        # 再次声明即被接受。因此需要这一项，否则脚本耗尽——那是夹具的问题，不是程序的问题。
+        {"finish": "best_effort", "deliver_round": 0, "reason": "确认交付原图"},
     ]
     install_client(script)
     state = L.run(

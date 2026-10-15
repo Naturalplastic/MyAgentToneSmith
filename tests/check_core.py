@@ -9,7 +9,8 @@
     4. validate_target / validate_action 的校验规则
     5. parse_json 的容错
     6. check_delivery 的三态语义，特别是"同一轮只质疑一次"
-    7. check_boundaries 的退出优先级与 plateau/converged 的互斥
+    7. check_boundaries 的退出优先级与 plateau/converged 的互斥，
+       以及回滚轮不计入平台判定
 """
 
 from __future__ import annotations
@@ -395,6 +396,21 @@ def main() -> int:
     set_rounds(st, [make_round(0, 0.2, guard_ok=True), make_round(1, 0.05, guard_ok=False)])
     st.rounds[-1].effective_delta = {"brightness": 0.1}
     check("单轮非法 -> rollback", check_boundaries(st) == "rollback")
+
+    # 被护栏拒绝并回滚的轮次不得进入平台判定的改善链条。
+    # 数据取自首次批量运行中的 65.JPG：第 1 轮触发护栏被回滚，它的误差是在一个
+    # 并未真正停留过的参数位置上测得的。旧实现把它一并入链，于是 r1->r2 被记成
+    # 一次"退步"，r2->r3 再记一次，两次假信号顶满 PLATEAU_ROUNDS，任务只用掉
+    # 3 轮（预算 10 轮）就以 plateau 退出，误差停在 0.0318。
+    st = make_state()
+    set_rounds(st, [make_round(0, 0.0364),
+                    make_round(1, 0.0312, guard_ok=False),
+                    make_round(2, 0.0318),
+                    make_round(3, 0.0359)])
+    st.rounds[-1].effective_delta = {"brightness": 0.1}
+    action = check_boundaries(st)
+    check("回滚轮不计入平台判定 -> 不提前退出", action != "exit", st.exit_reason or "")
+    check("回滚轮不计入平台判定 -> 继续迭代", action == "continue", action)
 
     # ================================================ 8. 图像护栏
     print("\n[8] 图像护栏（绝对阈值 + 相对原图的容差，取较宽松者）")
